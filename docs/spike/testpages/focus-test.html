@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus leak test</title>
+<style>
+  body { font: 16px system-ui; padding: 24px; }
+  input { font-size: 20px; width: 60%; padding: 8px; }
+  #log { margin-top: 12px; font-family: monospace; white-space: pre-wrap;
+         background: #f4f4f4; padding: 8px; min-height: 160px; }
+</style>
+<h1>Focus / keyboard leak probe</h1>
+<p>Every keydown that reaches this renderer is logged below, with the focus
+state at the time. If native-overlay typing leaks into the page, it shows here.</p>
+<input id="in" placeholder="page text input">
+<div id="log"></div>
+<script>
+  const log = document.getElementById('log');
+  const lines = [];
+  const add = s => {
+    lines.push(s);
+    log.textContent = lines.slice(-40).join('\n');
+  };
+  document.addEventListener('keydown', e =>
+    add(`keydown key=${JSON.stringify(e.key)} target=${e.target.id || e.target.tagName} docFocus=${document.hasFocus()}`),
+    true);
+  document.getElementById('in').addEventListener('input', e =>
+    add(`input value=${JSON.stringify(e.target.value)}`));
+  addEventListener('focus', () => add('window focus'));
+  addEventListener('blur', () => add('window blur'));
+  // Machine-readable readback for the driver script.
+  window.probe = () => JSON.stringify({
+    inputValue: document.getElementById('in').value,
+    docHasFocus: document.hasFocus(),
+    activeElement: document.activeElement && (document.activeElement.id || document.activeElement.tagName),
+    keydownCount: lines.filter(l => l.startsWith('keydown')).length,
+    log: lines.slice(-15),
+  });
+</script>

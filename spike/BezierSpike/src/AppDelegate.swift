@@ -8,6 +8,7 @@ public class BZAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
   var window: NSWindow!
   var urlField: NSTextField!
   var browserContainer: NSView!
+  var overlay: OverlayController!
 
   public func applicationDidFinishLaunching(_ notification: Notification) {
     buildMainMenu()
@@ -55,12 +56,29 @@ public class BZAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     content.addSubview(browserContainer)
     content.addSubview(bar)
 
+    // Overlay spike (Bézier #8): controller managing native views composited
+    // over the CEF view. --trace-dir=PATH is where frame traces / state dumps
+    // land; --prefer-promotion moves the window to the highest-refresh screen.
+    overlay = OverlayController(
+      window: window, contentView: content, browserContainer: browserContainer)
+    for arg in ProcessInfo.processInfo.arguments {
+      if arg.hasPrefix("--trace-dir=") {
+        overlay.traceDir = URL(
+          fileURLWithPath: String(arg.dropFirst("--trace-dir=".count)),
+          isDirectory: true)
+      }
+    }
+    if ProcessInfo.processInfo.arguments.contains("--prefer-promotion") {
+      moveToHighestRefreshScreen()
+    }
+
     let bridge = CefBridge.shared
     bridge.onTitleChange = { [weak self] title in
       self?.window.title = title
     }
     bridge.onAddressChange = { [weak self] url in
       self?.urlField.stringValue = url
+      self?.overlay.currentURL = url
     }
 
     window.makeKeyAndOrderFront(nil)
@@ -69,6 +87,40 @@ public class BZAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     urlField.stringValue = bridge.initialURL
     bridge.createBrowser(in: browserContainer, url: bridge.initialURL)
   }
+
+  private func moveToHighestRefreshScreen() {
+    // Prefer the built-in ProMotion panel when it can do >=120 Hz (the spike's
+    // target hardware); otherwise fall back to whatever refreshes fastest.
+    func isBuiltin(_ s: NSScreen) -> Bool {
+      guard
+        let n = s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")]
+          as? NSNumber
+      else { return false }
+      return CGDisplayIsBuiltin(n.uint32Value) != 0
+    }
+    let screens = NSScreen.screens
+    guard
+      let best = screens.first(where: { isBuiltin($0) && $0.maximumFramesPerSecond >= 120 })
+        ?? screens.max(by: {
+          $0.maximumFramesPerSecond < $1.maximumFramesPerSecond
+        })
+    else { return }
+    if window.screen != best {
+      let f = best.visibleFrame
+      let size = window.frame.size
+      window.setFrameOrigin(
+        NSPoint(
+          x: f.midX - size.width / 2,
+          y: f.midY - size.height / 2))
+    }
+    NSLog(
+      "BezierSpike: window on screen '\(window.screen?.localizedName ?? "?")' "
+        + "maxFPS=\(window.screen?.maximumFramesPerSecond ?? 0)")
+  }
+
+  @objc func toggleStaticOverlay(_ sender: Any?) { overlay.toggleStaticOverlay() }
+  @objc func toggleCommandBar(_ sender: Any?) { overlay.toggleCommandBar() }
+  @objc func runTracedLoop(_ sender: Any?) { overlay.runTracedLoop() }
 
   @objc func navigate(_ sender: Any?) {
     var url = urlField.stringValue.trimmingCharacters(in: .whitespaces)
@@ -129,6 +181,23 @@ public class BZAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
       NSMenuItem(
         title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
     editItem.submenu = editMenu
+
+    let viewItem = NSMenuItem()
+    mainMenu.addItem(viewItem)
+    let viewMenu = NSMenu(title: "View")
+    viewMenu.addItem(
+      NSMenuItem(
+        title: "Toggle Static Overlay",
+        action: #selector(toggleStaticOverlay(_:)), keyEquivalent: "1"))
+    viewMenu.addItem(
+      NSMenuItem(
+        title: "Toggle Command Bar",
+        action: #selector(toggleCommandBar(_:)), keyEquivalent: "k"))
+    viewMenu.addItem(
+      NSMenuItem(
+        title: "Run Traced Animation Loop",
+        action: #selector(runTracedLoop(_:)), keyEquivalent: "l"))
+    viewItem.submenu = viewMenu
 
     NSApp.mainMenu = mainMenu
   }

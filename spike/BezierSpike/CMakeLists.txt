@@ -59,7 +59,7 @@ set(SPIKE_APP "${CEF_TARGET_OUT_DIR}/${SPIKE_TARGET}.app")
 # (CefBridge.h, no C++ in it) through the bridging header.
 #
 
-add_library(BezierUI STATIC src/AppDelegate.swift)
+add_library(BezierUI STATIC src/AppDelegate.swift src/OverlayController.swift)
 set_target_properties(BezierUI PROPERTIES Swift_MODULE_NAME "BezierUI")
 target_compile_options(BezierUI PRIVATE
   -import-objc-header "${CMAKE_CURRENT_SOURCE_DIR}/src/CefBridge.h")
@@ -94,6 +94,10 @@ target_link_libraries(${SPIKE_TARGET}
   ${CEF_STANDARD_LIBS}
   "-Wl,-force_load,$<TARGET_FILE:BezierUI>"
   )
+# The -force_load flag string hides the file dependency from ninja: without
+# this, editing Swift sources rebuilds the .a but never relinks the app.
+set_property(TARGET ${SPIKE_TARGET} APPEND PROPERTY
+  LINK_DEPENDS "$<TARGET_FILE:BezierUI>")
 # Search path for the auto-linked Swift runtime .tbd stubs.
 execute_process(COMMAND xcrun --show-sdk-path
                 OUTPUT_VARIABLE MACOS_SDK_PATH

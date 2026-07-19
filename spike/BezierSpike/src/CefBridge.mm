@@ -73,6 +73,20 @@
   }
 }
 
+- (void)focusBrowser {
+  CefRefPtr<CefBrowser> browser = _client->GetFirstBrowser();
+  if (browser) {
+    browser->GetHost()->SetFocus(true);
+  }
+}
+
+- (void)unfocusBrowser {
+  CefRefPtr<CefBrowser> browser = _client->GetFirstBrowser();
+  if (browser) {
+    browser->GetHost()->SetFocus(false);
+  }
+}
+
 - (void)closeAllBrowsers:(BOOL)force {
   _client->CloseAllBrowsers(force);
 }

@@ -28,6 +28,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)loadURL:(NSString *)url;
 
+/// Tell CEF the browser gained/lost input focus (overlay spike: hand keyboard
+/// focus back to web content after a native overlay had it).
+- (void)focusBrowser;
+- (void)unfocusBrowser;
+
 /// Begin closing all browsers. When the last browser is gone the NSApp run
 /// loop is stopped and main() proceeds to CefShutdown.
 - (void)closeAllBrowsers:(BOOL)force;

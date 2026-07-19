@@ -1,0 +1,3 @@
+# Generated locally for the overlay video test (see overlay-evidence.md);
+# never commit binaries. spike build output is ignored in spike/BezierSpike/.gitignore.
+docs/spike/testpages/video.webm

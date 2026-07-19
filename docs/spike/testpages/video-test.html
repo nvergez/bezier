@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Overlay video test</title>
+<style>
+  body { margin: 0; background: #111; color: #eee; font: 14px monospace; }
+  video { display: block; width: 100%; max-height: 75vh; }
+  #stats { padding: 10px; }
+</style>
+<!-- video.webm is generated locally (see overlay-evidence.md for the ffmpeg
+     command) and served from the same directory; it is not committed. VP9,
+     not H.264: the CEF standard distribution has no proprietary codecs. -->
+<video src="video.webm" autoplay muted loop playsinline></video>
+<div id="stats">waiting for video…</div>
+<script>
+  const v = document.querySelector('video');
+  const el = document.getElementById('stats');
+  setInterval(() => {
+    const q = v.getVideoPlaybackQuality ? v.getVideoPlaybackQuality() : {};
+    el.textContent = JSON.stringify({
+      currentTime: +v.currentTime.toFixed(2),
+      paused: v.paused,
+      readyState: v.readyState,
+      totalVideoFrames: q.totalVideoFrames,
+      droppedVideoFrames: q.droppedVideoFrames,
+    });
+  }, 250);
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Overlay scroll test</title>
+<style>
+  body { margin: 0; font: 16px system-ui; }
+  section { height: 320px; display: flex; align-items: center;
+            justify-content: center; font-size: 48px; color: #fff; }
+  #hud { position: fixed; top: 8px; right: 8px; background: rgba(0,0,0,.7);
+         color: #0f0; font: 13px monospace; padding: 6px 10px; z-index: 10; }
+</style>
+<div id="hud">y=0</div>
+<script>
+  // 300 alternating-color numbered sections: scroll position is visually
+  // obvious in screenshots, and the fixed HUD reports it numerically.
+  const hues = [210, 30, 140, 80, 280, 0];
+  for (let i = 0; i < 300; i++) {
+    const s = document.createElement('section');
+    s.style.background = `hsl(${hues[i % hues.length]}, 65%, ${i % 2 ? 38 : 52}%)`;
+    s.textContent = `section ${i}`;
+    document.body.appendChild(s);
+  }
+  const hud = document.getElementById('hud');
+  addEventListener('scroll', () => { hud.textContent = 'y=' + Math.round(scrollY); });
+</script>
