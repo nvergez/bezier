@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>uBOL cosmetic filtering test</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 2rem; }
+  .box { padding: 1.5rem; margin: 0.75rem 0; border-radius: 8px; font-size: 1.2rem; font-weight: 600; }
+  .should-hide { background: #d33; color: #fff; }
+  .should-stay { background: #2a2; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Cosmetic filtering test page</h1>
+<p>The three RED boxes match generic EasyList cosmetic filters shipped in uBO Lite
+(<code>#AdBanner</code>, <code>#Ad-Container</code>, <code>.advertembed</code>).
+If cosmetic filtering (content scripts) works, the red boxes are hidden and only
+the green control box remains.</p>
+
+<div id="AdBanner" class="box should-hide">RED #AdBanner — should be HIDDEN by cosmetic filtering</div>
+<div id="Ad-Container" class="box should-hide">RED #Ad-Container — should be HIDDEN by cosmetic filtering</div>
+<div class="advertembed box should-hide">RED .advertembed — should be HIDDEN by cosmetic filtering</div>
+<div id="control" class="box should-stay">GREEN control box — must ALWAYS stay visible</div>
+
+<p id="verdict" style="font-size:1.4rem; font-weight:700;"></p>
+<script>
+  // Report verdict after giving content scripts time to act.
+  function check() {
+    const hidden = ['AdBanner', 'Ad-Container'].filter(
+      id => getComputedStyle(document.getElementById(id)).display === 'none');
+    const clsHidden = getComputedStyle(document.querySelector('.advertembed')).display === 'none';
+    const n = hidden.length + (clsHidden ? 1 : 0);
+    const v = document.getElementById('verdict');
+    v.textContent = 'VERDICT: ' + n + '/3 ad elements hidden — cosmetic filtering ' +
+      (n === 3 ? 'WORKS' : (n > 0 ? 'PARTIAL' : 'NOT ACTIVE'));
+    v.style.color = n === 3 ? '#2a2' : '#d33';
+  }
+  setTimeout(check, 1500);
+  setInterval(check, 3000);
+</script>
+</body>
+</html>

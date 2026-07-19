@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>uBOL network blocking test</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 2rem; }
+  .row { padding: 0.8rem 1.2rem; margin: 0.5rem 0; border-radius: 8px; font-size: 1.1rem; font-weight: 600; background: #eee; }
+  .blocked { background: #2a2; color: #fff; }
+  .loaded { background: #d33; color: #fff; }
+  .ctl-loaded { background: #2a2; color: #fff; }
+  .ctl-blocked { background: #d33; color: #fff; }
+</style>
+</head>
+<body>
+<h1>Network blocking (DNR) test page</h1>
+<p>Rows 1–3 are real ad/tracker scripts on uBO Lite's default blocklists
+(EasyList / EasyPrivacy). GREEN = the request was blocked. The control row is a
+benign CDN script that must load (GREEN when loaded).</p>
+<div class="row" id="r0">1. googlesyndication adsbygoogle.js — pending…</div>
+<div class="row" id="r1">2. doubleclick ad_status.js — pending…</div>
+<div class="row" id="r2">3. googletagmanager gtag/js — pending…</div>
+<div class="row" id="r3">CONTROL. jsdelivr lodash.min.js — pending…</div>
+<p id="verdict" style="font-size:1.4rem; font-weight:700;"></p>
+<script>
+const tests = [
+  { id: 'r0', url: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', label: 'googlesyndication adsbygoogle.js', wantBlocked: true },
+  { id: 'r1', url: 'https://static.doubleclick.net/instream/ad_status.js', label: 'doubleclick ad_status.js', wantBlocked: true },
+  { id: 'r2', url: 'https://www.googletagmanager.com/gtag/js?id=G-TEST12345', label: 'googletagmanager gtag/js', wantBlocked: true },
+  { id: 'r3', url: 'https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js', label: 'CONTROL jsdelivr lodash.min.js', wantBlocked: false },
+];
+let done = 0, good = 0;
+tests.forEach((t, i) => {
+  const s = document.createElement('script');
+  s.src = t.url;
+  const el = document.getElementById(t.id);
+  s.onload = () => {
+    el.textContent = (t.wantBlocked ? '✗ ' : '✓ ') + t.label + ' — LOADED (not blocked)';
+    el.className = 'row ' + (t.wantBlocked ? 'loaded' : 'ctl-loaded');
+    if (!t.wantBlocked) good++;
+    finish();
+  };
+  s.onerror = () => {
+    el.textContent = (t.wantBlocked ? '✓ ' : '✗ ') + t.label + ' — BLOCKED / failed';
+    el.className = 'row ' + (t.wantBlocked ? 'blocked' : 'ctl-blocked');
+    if (t.wantBlocked) good++;
+    finish();
+  };
+  document.head.appendChild(s);
+});
+function finish() {
+  if (++done < tests.length) return;
+  const v = document.getElementById('verdict');
+  v.textContent = 'VERDICT: ' + good + '/4 as expected — network blocking ' +
+    (good === 4 ? 'WORKS' : (good >= 2 ? 'PARTIAL' : 'NOT ACTIVE'));
+  v.style.color = good === 4 ? '#2a2' : '#d33';
+}
+</script>
+</body>
+</html>
